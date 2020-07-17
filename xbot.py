@@ -7,9 +7,7 @@ import random
 import time
 import crayons
 import threading
-import sys
 from datetime import datetime
-import aiohttp
 
 
 version = "1.7"
@@ -107,7 +105,7 @@ class MyClient(fortnitepy.Client):
         print(crayons.green("╚═╝  ╚═╝     ╚═════╝  ╚═════╝    ╚═╝  \n"))
         print(crayons.red("--------------------------------"))
         print(crayons.blue(
-            f'Fortnite Python bot made by mistxbrain and TJ. Version: {version}'))
+            f'Fortnite Python bot made by brain and TJ. Version: {version}'))
         print(crayons.blue('Join the discord: https://discord.gg/6sMKGeg'))
         print(crayons.green(f'Bot ready as {self.user.display_name}'))
         print(crayons.red("--------------------------------"))
@@ -115,8 +113,7 @@ class MyClient(fortnitepy.Client):
             if a.incoming:
                 if data["friendaccept"]:
                     await a.accept()
-                    now = datetime.now()
-                    time_b = now.strftime("%H:%M:%S")
+                    time_b = datetime.now().strftime("%H:%M:%S")
                     print(crayons.blue(f"[X-Bot] [{time_b}]: ") + crayons.green(
                         f"Accepted friend request from {a.display_name}"))
                 else:
@@ -127,8 +124,7 @@ class MyClient(fortnitepy.Client):
             await request.accept()
 
     async def event_party_invite(self, invite):
-        now = datetime.now()
-        time_b = now.strftime("%H:%M:%S")
+        time_b = datetime.now().strftime("%H:%M:%S")
         print(crayons.blue(f"[X-Bot] [{time_b}]: ") + crayons.green(
             f"Recieved party invite from {invite.sender.display_name}"))
         await invite.accept()
@@ -141,8 +137,7 @@ class MyClient(fortnitepy.Client):
             await reset()
 
     async def event_friend_message(self, message):
-        now = datetime.now()
-        time_c = now.strftime("%H:%M:%S")
+        time_c = datetime.now().strftime("%H:%M:%S")
         print(crayons.blue(
             f"[{message.author.display_name}] [{time_c}]: ") + crayons.magenta(message.content))
         # try:
