@@ -118,7 +118,7 @@ class MyClient(fortnitepy.Client):
         print(crayons.red("--------------------------------"))
         print(crayons.blue(
             f'Fortnite Python bot made by brain and TJ. Version: {version}'))
-        print(crayons.blue('Join the discord: https://discord.gg/6sMKGeg'))
+        print(crayons.blue('Join the discord: https://discord.gg/6sMKGeg. Huge credit to Terbau for the fortnitepy library.'))
         print(crayons.green(f'Bot ready as {self.user.display_name}'))
         print(crayons.red("--------------------------------"))
         for a in list(client.pending_friends.values()):
