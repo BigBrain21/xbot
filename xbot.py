@@ -19,6 +19,10 @@ import datetime as dt
 from datetime import datetime
 import crayons
 
+def console_success(bot_info, content):
+    print(crayons.blue(bot_info) + crayons.green(f" {content}"))
+def console_error(bot_info, content):
+    print(crayons.blue(bot_info) + crayons.red(f" {content}"))
 def now():
     return datetime.now().strftime("%H:%M:%S")
 loop = asyncio.get_event_loop()
@@ -135,12 +139,15 @@ async def skin(message, msg, client):
         f"https://benbotfn.tk/api/v1/cosmetics/br/search/all?lang=en&searchLang=en&matchMethod=contains&name={msg[1]}&backendType=AthenaCharacter").json()
     if response == []:
         await message.reply("Please enter a valid skin name.")
+
     else:
         try:
             skin = response[0]["id"]
             await client.party.me.set_outfit(skin)
             await message.reply(f"Skin set to {skin}")
+            console_success(f"[{client.party.me.display_name}] [{now()}]", f"Skin set to {skin}")
         except:
+            console_error(f"[{client.party.me.display_name}] [{now()}]", f"An error occured.")
             await message.reply("An Unknown error occured.")
 
 @fortnite_commands.add_command()
@@ -368,10 +375,11 @@ async def invite(message, msg, client):
 @fortnite_commands.add_command()
 async def join(message, msg, client):
     await message.author.join_party()
+    await asyncio.sleep(.5)
     await reset(client)
     await message.reply("Joined")
 
-@fortnite_commands.add_command()
+@fortnite_commands.add_command(name="reset")
 async def reset_c(message, msg, client):
     await reset(client)
     await message.reply("Reset my loadout")
@@ -598,4 +606,6 @@ print(crayons.blue(
     f'Fortnite Python bot made by brain and TJ. Version: {version}'))
 print(crayons.blue('Join the discord: https://discord.gg/TRrRrRE'))
 print(crayons.red("--------------------------------"))
+
+
 loop.run_until_complete(fortnitepy.start_multiple(to_run))
