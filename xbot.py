@@ -9,7 +9,7 @@ License: Apache 2.0"""
 import fortnitepy
 import json
 import os
-import requests
+
 import functools
 import random
 import time
@@ -18,6 +18,8 @@ import asyncio
 import datetime as dt
 from datetime import datetime
 import crayons
+import aiohttp
+
 
 def console_success(bot_info, content):
     print(crayons.blue(bot_info) + crayons.green(f" {content}"))
@@ -26,7 +28,7 @@ def console_error(bot_info, content):
 def now():
     return datetime.now().strftime("%H:%M:%S")
 loop = asyncio.get_event_loop()
-version = "1.8"
+version = "1.9"
 try:
     with open("config.json") as f:
         data = json.load(f)
@@ -40,13 +42,29 @@ except:
 accounts = data["accounts"]
 filename = 'device_auths.json'
 
+
+async def fetch_id(url):
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as a:
+            if await a.json() == {'error': 'Could not find any cosmetic matching parameters'}:
+                return None
+            else:
+                return (await a.json())["id"]
+
 class default_cosmetics:
     def __init__(self):
-        self.default_skin = "CID_028_Athena_Commando_F"
-        self.default_pickaxe = "Pickaxe_Lockjaw"
-        self.defaultbackpack = "BID_004_BlackKnight"
-
-
+        if "cid" in data["defaultskin"].lower():
+            self.default_skin = data["defaultskin"]
+        else:
+            self.default_skin = loop.run_until_complete(fetch_id(f"https://benbotfn.tk/api/v1/cosmetics/br/search?lang=en&searchLang=en&matchMethod=contains&name={data['defaultskin']}&backendType=AthenaCharacter"))
+        if "pickaxe" in data["defaultpickaxe"].lower():
+            self.default_pickaxe = data["defaultpickaxe"]
+        else:
+            self.default_pickaxe = loop.run_until_complete(fetch_id(f"https://benbotfn.tk/api/v1/cosmetics/br/search?lang=en&searchLang=en&matchMethod=full&name={data['defaultpickaxe']}&backendType=AthenaPickaxe"))
+        if "bid" in data["defaultbackpack"].lower():
+            self.defaultbackpack = data["defaultbackpack"]
+        else:
+            self.defaultbackpack = loop.run_until_complete(fetch_id(f"https://benbotfn.tk/api/v1/cosmetics/br/search?lang=en&searchLang=en&matchMethod=contains&name={data['defaultbackpack']}&backendType=AthenaBackpack"))
 
 class bot_commands:
     def __init__(self):
@@ -121,28 +139,28 @@ class MyClient(fortnitepy.Client):
     async def event_friend_message(self, message):
         print(crayons.blue(f"[{self.party.me.display_name}] [{message.author.display_name}] [{now()}] ") + crayons.green(message.content))
         command = message.content.split(" ", 1)
-        try:
-            await fortnite_commands.commands[command[0]](message, command, self)
-        except KeyError:
-            print(crayons.blue(f"[{self.party.me.display_name}] [{now()}]") + crayons.red(f" Unknown command '{message.content}'"))
+        #try:
+        await fortnite_commands.commands[command[0]](message, command, self)
         """
-        except:
+        except KeyError as a:
+            print(a)
+            print(crayons.blue(f"[{self.party.me.display_name}] [{now()}]") + crayons.red(f" Unknown command '{message.content}'"))
+        except Exception as a:
+            print(a)
             print(crayons.blue(
-                f"[X-Bot] [{time_c}]: ") + crayons.red(f"Unknown command '{message.content}'"))"""
+                f"[X-Bot] [{now()}]: ") + crayons.red(f"Unknown command '{message.content}'"))"""
     async def event_party_member_leave(self, user):
         if self.party.member_count == 1 and user.display_name != self.party.me.display_name:
             await self.party.me.leave()
 
 @fortnite_commands.add_command()
 async def skin(message, msg, client):
-    response = requests.get(
-        f"https://benbotfn.tk/api/v1/cosmetics/br/search/all?lang=en&searchLang=en&matchMethod=contains&name={msg[1]}&backendType=AthenaCharacter").json()
-    if response == []:
+    skin = await fetch_id(f"https://benbotfn.tk/api/v1/cosmetics/br/search?lang=en&searchLang=en&matchMethod=contains&name={msg[1]}&backendType=AthenaCharacter")
+    if skin == None:
         await message.reply("Please enter a valid skin name.")
-
     else:
         try:
-            skin = response[0]["id"]
+            print(skin)
             await client.party.me.set_outfit(skin)
             await message.reply(f"Skin set to {skin}")
             console_success(f"[{client.party.me.display_name}] [{now()}]", f"Skin set to {skin}")
@@ -152,13 +170,11 @@ async def skin(message, msg, client):
 
 @fortnite_commands.add_command()
 async def emote(message, msg, client):
-    response = requests.get(
-        f"https://benbotfn.tk/api/v1/cosmetics/br/search/all?lang=en&searchLang=en&matchMethod=contains&name={msg[1]}&backendType=AthenaDance").json()
-    if response == []:
+    id = await fetch_id(f"https://benbotfn.tk/api/v1/cosmetics/br/search?lang=en&searchLang=en&matchMethod=contains&name={msg[1]}&backendType=AthenaDance")
+    if id == None:
         await message.reply("Please enter a valid emote.")
     else:
         try:
-            id = response[0]["id"]
             await client.party.me.set_emote(id)
             await message.reply(f"Emote set to {id}")
         except:
@@ -166,9 +182,8 @@ async def emote(message, msg, client):
 
 @fortnite_commands.add_command()
 async def backpack(message, msg, client):
-    response = requests.get(
-        f"https://benbotfn.tk/api/v1/cosmetics/br/search/all?lang=en&searchLang=en&matchMethod=contains&name={msg[1]}&backendType=AthenaBackpack").json()
-    if response == []:
+    id = await fetch_id(f"https://benbotfn.tk/api/v1/cosmetics/br/search?lang=en&searchLang=en&matchMethod=contains&name={msg[1]}&backendType=AthenaBackpack")
+    if id == None:
         await message.reply("Please enter a valid backpack.")
     else:
         try:
@@ -289,19 +304,21 @@ async def rare(message, msg, client):
     await client.party.me.set_backpack("BID_004_BlackKnight")
     await client.party.me.set_pickaxe("Pickaxe_Lockjaw")
     await message.reply("Set to a rare loadout.")
-
-@fortnite_commands.add_command()
+@fortnite_commands.add_command(name="random")
 async def random_a(message, msg, client):
-    allcos = requests.get(
-        url="https://benbotfn.tk/api/v1/cosmetics/br/search/all?lang=en&searchLang=en&matchMethod=full&backendType=AthenaCharacter").json()
+    async with aiohttp.ClientSession() as request:
+        async with request.get(f"https://benbotfn.tk/api/v1/cosmetics/br/search/all?lang=en&searchLang=en&matchMethod=full&backendType=AthenaCharacter") as a:
+            allcos = await a.json()
     length = len(allcos)
     cid = allcos[random.randint(1, length)]["id"]
-    allcos = requests.get(
-        url="https://benbotfn.tk/api/v1/cosmetics/br/search/all?lang=en&searchLang=en&matchMethod=full&backendType=AthenaBackpack").json()
+    async with aiohttp.ClientSession() as request:
+        async with request.get(f"https://benbotfn.tk/api/v1/cosmetics/br/search/all?lang=en&searchLang=en&matchMethod=full&backendType=AthenaBackpack") as a:
+            allcos = await a.json()
     length = len(allcos)
     bid = allcos[random.randint(1, length)]["id"]
-    allcos = requests.get(
-        url="https://benbotfn.tk/api/v1/cosmetics/br/search/all?lang=en&searchLang=en&matchMethod=full&backendType=AthenaPickaxe").json()
+    async with aiohttp.ClientSession() as request:
+        async with request.get(f"https://benbotfn.tk/api/v1/cosmetics/br/search/all?lang=en&searchLang=en&matchMethod=full&backendType=AthenaPickaxe") as a:
+            allcos = await a.json()
     length = len(allcos)
     pid = allcos[random.randint(1, length)]["id"]
     await client.party.me.set_backpack(bid)
@@ -387,9 +404,9 @@ async def reset_c(message, msg, client):
 @fortnite_commands.add_command()
 async def gift(message, msg, client):
     await client.party.me.set_emote("EID_MakeItRain")
-    time.sleep(2)
+    await asyncio.sleep(2)
     await client.party.me.set_emote("EID_TakeTheL")
-    time.sleep(2)
+    await asyncio.sleep(2)
     await client.party.me.clear_emote()
     await message.reply("Syke")
 
@@ -476,8 +493,9 @@ async def hologram(message, msg, client):
 
 @fortnite_commands.add_command()
 async def pickaxe(message, msg, client):
-    response = requests.get(
-        f"https://benbotfn.tk/api/v1/cosmetics/br/search/all?lang=en&searchLang=en&matchMethod=contains&name={msg[1]}&backendType=AthenaPickaxe").json()
+    async with aiohttp.ClientSession() as request:
+        async with request.get(f"https://benbotfn.tk/api/v1/cosmetics/br/search/all?lang=en&searchLang=en&matchMethod=contains&name={msg[1]}&backendType=AthenaPickaxe") as a:
+            response = await a.json()
     if response == []:
         await message.reply("Please enter a valid pickaxe name.")
     else:
@@ -490,8 +508,9 @@ async def pickaxe(message, msg, client):
 
 @fortnite_commands.add_command()
 async def emoji(message, msg, client):
-    response = requests.get(
-        f"https://benbotfn.tk/api/v1/cosmetics/br/search/all?lang=en&searchLang=en&matchMethod=contains&name={msg[1]}&backendType=AthenaEmoji").json()
+    async with aiohttp.ClientSession() as request:
+        async with request.get(f"https://benbotfn.tk/api/v1/cosmetics/br/search/all?lang=en&searchLang=en&matchMethod=contains&name={msg[1]}&backendType=AthenaEmoji") as a:
+            response = await a.json()
     if response == []:
         await message.reply("Please enter a valid emoji name.")
     else:
@@ -520,33 +539,38 @@ async def maskedfade(message, msg, client):
 
 @fortnite_commands.add_command()
 async def variants(message, msg, client):
-    content = msg[1].split(" ", 1)
-    if content[0].isdigit():
-        code = requests.get(
-            f"https://benbotfn.tk/api/v1/cosmetics/br/search?lang=en&searchLang=en&matchMethod=contains&name={content[1]}").json()
-        type_v = code["variants"][0]["channel"].lower()
-        variants = fortnitepy.ClientPartyMember.create_variants(
-            **{type_v: content[0]}
-        )
-        if "cid" in code["id"].lower():
-            await client.party.me.set_outfit(code["id"], variants=variants)
-            await message.reply(f"Outfit set to {code['id']} with the {content[0]} variant.")
-        elif "bid" in code["id"].lower():
-            await client.party.me.set_backpack(code["id"], variants=variants)
-            await message.reply(f"Backpack set to {code['id']} with the {content[0]} variant.")
+    try:
+        content = msg[1].split(" ", 1)
+        if content[0].isdigit():
+            async with aiohttp.ClientSession() as request:
+                async with request.get(f"https://benbotfn.tk/api/v1/cosmetics/br/search?lang=en&searchLang=en&matchMethod=full&name={content[1]}") as a:
+                    code = await a.json()
+            type_v = code["variants"][0]["channel"].lower()
+            variants = fortnitepy.ClientPartyMember.create_variants(
+                **{type_v: content[0]}
+            )
+            if "cid" in code["id"].lower():
+                await client.party.me.set_outfit(code["id"], variants=variants)
+                await message.reply(f"Outfit set to {code['id']} with the {content[0]} variant.")
+            elif "bid" in code["id"].lower():
+                await client.party.me.set_backpack(code["id"], variants=variants)
+                await message.reply(f"Backpack set to {code['id']} with the {content[0]} variant.")
 
-        elif "pickaxe" in code["id"].lower():
-            await client.party.me.set_pickaxe(code["id"], variants=variants)
-            await message.reply(f"Pickaxe set to {code['id']} with the {content[0]} variant.")
-    else:
-        await message.reply("Please enter the command in a valid syntax.")
+            elif "pickaxe" in code["id"].lower():
+                await client.party.me.set_pickaxe(code["id"], variants=variants)
+                await message.reply(f"Pickaxe set to {code['id']} with the {content[0]} variant.")
+        else:
+            await message.reply("Please enter the command in a valid syntax.")
+    except Exception as a:
+        print(a)
 
 @fortnite_commands.add_command()
 async def style(message, msg, client):
     content = msg[1].split(" ", 2)
     if content[0].isdigit():
-        code = requests.get(
-            f"https://benbotfn.tk/api/v1/cosmetics/br/search?lang=en&searchLang=en&matchMethod=full&name={content[2]}").json()
+        async with aiohttp.ClientSession() as request:
+            async with request.get(f"https://benbotfn.tk/api/v1/cosmetics/br/search?lang=en&searchLang=en&matchMethod=full&name={content[2]}") as a:
+                code = await a.json()
         type_v = content[1]
         variants = fortnitepy.ClientPartyMember.create_variants(
             **{type_v: content[0]}
@@ -604,7 +628,7 @@ print(crayons.green("╚═╝  ╚═╝     ╚═════╝  ╚══�
 print(crayons.red("--------------------------------"))
 print(crayons.blue(
     f'Fortnite Python bot made by brain and TJ. Version: {version}'))
-print(crayons.blue('Join the discord: https://discord.gg/TRrRrRE'))
+print(crayons.blue('Join the discord: https://discord.gg/JwUgaua'))
 print(crayons.red("--------------------------------"))
 
 
