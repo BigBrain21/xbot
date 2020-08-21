@@ -1,3 +1,3 @@
 # xbot
 </h>Fortnite Lobby Bot coded in python using Terbau's fortnitepy</h>
-<p>Made by brain and Tj</p>
+<p>Made by brain</p>
